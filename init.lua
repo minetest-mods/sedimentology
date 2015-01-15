@@ -449,12 +449,21 @@ local function sedimentology()
 end
 
 local function sedcmd(name, param)
-	if param == "stats" then
+	local paramlist = string.split(param, " ")
+	if paramlist[1] == "stats" then
 		local output = "Sedimentology mod statistics:" ..
 			"\nconsidered: " .. stat_considered ..
 			"\ndisplaced: " .. stat_displaced ..
 			"\ndegraded: " .. stat_degraded
 		return true, output
+	elseif paramlist[1] == "blocks" then
+		if tonumber(paramlist[2]) then
+			count = tonumber(paramlist[2])
+			return true, "Set blocks to " .. count
+		else
+			return true, "Blocks: " .. count
+		end
+
 	end
 	return true, "Command completed succesfully"
 end
