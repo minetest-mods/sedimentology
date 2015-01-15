@@ -356,12 +356,12 @@ local function sed()
 		end
 
 		if lowest < pos.y then
-			local tpos = {x = pos.x + o.x, y = lowest, z = pos.z + o.z}
+			local tpos = {x = pos.x + lowesto.x, y = lowest, z = pos.z + lowesto.z}
 
 			if not roll(resistance) then
 				local tnode = minetest.get_node(tpos)
 
-				if node_is_air(tnode) or node_is_plant(tnode) or node_is_liquid(tnode) then
+				if node_is_valid_target_for_displacement(tpos) then
 					-- time to displace the node from pos to tpos
 					minetest.place_node(tpos, node)
 					minetest.get_meta(tpos):from_table(minetest.get_meta(pos):to_table())
@@ -371,14 +371,10 @@ local function sed()
 					-- fix water at source location
 					-- fix water at target location
 
-					print("Moved:", node.name, pos.x, pos.y, pos.z, "to:", tnode.name, tpos.x, tpos.y, tpos.z)
 					stat_displaced = stat_displaced + 1
 
 					-- done - don't degrade this block further
 					return
-				else
-					--debug
-					print("displacement failed: target has something:", tpos.x, tpos.y, tpos.z)
 				end
 			end
 		end
