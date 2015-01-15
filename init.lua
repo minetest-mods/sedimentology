@@ -53,13 +53,11 @@ local function roll(chance)
 	return (math.random() >= chance)
 end
 
-local function node_above(node)
-	local pos = minetest.get_pos(node)
+local function pos_above(pos)
 	return {x = pos.x, y = pos.y + 1, z = pos.z}
 end
 
-local function node_below(node)
-	local pos = minetest.get_pos(node)
+local function pos_below(pos)
 	return {x = pos.x, y = pos.y - 1, z = pos.z}
 end
 
@@ -196,15 +194,16 @@ end
 local function find_deposit_location(x, y, z)
 	local yy = y
 	while true do
-		if node_is_valid_target_for_displacement({x = x, y = yy, z = z}) then
+		if node_is_valid_target_for_displacement({x = x, y = yy - 1, z = z}) then
 			yy = yy - 1
 			if yy < -32768 then
-				return y
+				break
 			end
 		else
-			return yy + 1
+			break
 		end
 	end
+	return yy
 end
 
 local function sed()
@@ -224,24 +223,41 @@ local function sed()
 		y = 0,
 		z = math.random(playerpos.z - radius, playerpos.z + radius)
 	}
-	local node = minetest.get_pos(pos)
 
 	stat_considered = stat_considered + 1
 
+	-- force load map
+	local vm = minetest.get_voxel_manip()
+	local minp, maxp = vm:read_from_map(
+		{x = pos.x - 3, y = pos.y - 100, z = pos.z - 3},
+		{x = pos.x + 3, y = pos.y + 100, z = pos.z + 3}
+	)
+
 	-- now go find the topmost non-air block
 	repeat
-		node = node_above(node)
-	until node_is_air(node)
+		pos = pos_above(pos)
+		if not minetest.get_node_or_nil(pos) then
+			return
+		end
+	until node_is_air(minetest.get_node(pos))
 
 	repeat
-		node = node_below(node)
-	until not node_is_air(node)
+		pos = pos_below(pos)
+		if not minetest.get_node_or_nil(pos) then
+			return
+		end
+	until not node_is_air(minetest.get_node(pos))
 
 	-- then search under water/lava and any see-through plant stuff
-	while (node_is_liquid(node)) do
+	while (node_is_liquid(minetest.get_node(pos))) do
 		underliquid = underliquid + 1
-		node = node_below(node)
+		pos = pos_below(pos)
+		if not minetest.get_node_or_nil(pos) then
+			return
+		end
 	end
+
+	local node = minetest.get_node(pos)
 
 	-- check if we're material that we can do something with
 	local hardness = 1.0
@@ -282,6 +298,7 @@ local function sed()
 		-- we don't do anything with this node type
 		return
 	end
+
 
 	-- determine nearby water scaling
 	local waterfactor = 0.01
@@ -331,7 +348,6 @@ local function sed()
 		for step = 1, steps, 1 do
 			o = walker_f(o.x, o.z)
 			local h = find_deposit_location(pos.x + o.x, lowest, pos.z + o.z)
-print("walking step " .. step .. " to " .. pos.x + o.x .. ", " .. pos.z + o.z .. " -> lowest = " .. h)
 
 			if h < lowest then
 				lowest = h
