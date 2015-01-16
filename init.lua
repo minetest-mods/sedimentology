@@ -398,8 +398,8 @@ local function sed()
 		return
 	end
 
-	-- prevent sand in dirt-dominated areas
-	if node.name == "default:dirt" then
+	-- prevent sand in dirt-dominated areas above water
+	if node.name == "default:dirt" and underliquid < 1 then
 		-- since we don't have biome information, we'll assume that if there is no sand or
 		-- desert sand anywhere nearby, we shouldn't degrade this block further
 		local fpos = minetest.find_node_near(pos, 2, {"default:sand", "default:desert_sand"})
