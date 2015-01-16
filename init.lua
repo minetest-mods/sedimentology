@@ -467,6 +467,7 @@ local function sedcmd(name, param)
 	local paramlist = string.split(param, " ")
 	if paramlist[1] == "stats" then
 		local output = "Sedimentology mod statistics:" ..
+			"\nradius: " .. radius .. ", blocks: " .. count ..
 			"\nconsidered: " .. stat_considered ..
 			"\ndisplaced: " .. stat_displaced ..
 			"\ndegraded: " .. stat_degraded
@@ -478,7 +479,6 @@ local function sedcmd(name, param)
 		else
 			return true, "Blocks: " .. count
 		end
-
 	end
 	return true, "Command completed succesfully"
 end
