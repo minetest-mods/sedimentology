@@ -95,8 +95,6 @@ local function node_is_water(node)
 		return false
 	end
 
-	print(dump(node))
-
 	return ((node.name == "default:water_source") or
 	        (node.name == "default:water_flowing"))
 end
@@ -444,9 +442,6 @@ local function sed()
 	       node.name == "default:stone_with_mese" or
 	       node.name == "default:stone_with_diamond" then
 		newmat = "default:stone"
-	else
-		print("wut", node.name)
-		return
 	end
 
 	minetest.set_node(pos, {name = newmat})
