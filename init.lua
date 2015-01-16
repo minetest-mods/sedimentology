@@ -473,12 +473,19 @@ local function sedcmd(name, param)
 			"\ndegraded: " .. stat_degraded
 		return true, output
 	elseif paramlist[1] == "blocks" then
+		if not minetest.check_player_privs(name, {server=true}) then
+			return false, "You do not have privileges to execute that command"
+		end
 		if tonumber(paramlist[2]) then
 			count = tonumber(paramlist[2])
 			return true, "Set blocks to " .. count
 		else
 			return true, "Blocks: " .. count
 		end
+	else
+		return false, "/sed [blocks|stats|help]\n" ..
+			"blocks    - get or set block count per interval (requires 'server' privs)\n" ..
+			"stats     - display operational statistics"
 	end
 	return true, "Command completed succesfully"
 end
