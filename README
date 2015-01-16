@@ -1,0 +1,78 @@
+Sedimentology-mt
+
+  -- a minetest mod that simulates erosion and sedimentation.
+
+  (Ported from my Sedimentology Bukkit Plugin)
+
+~~~~
+
+This plugin attempts to create processes that are involved in the
+transport and deposition of sediments:
+
+- water picking up material
+- transportation down slopes
+- weather influence
+- material falling down cliffs
+- material decaying/degrading into smaller grained materials
+
+The plugin doesn't properly recreate real geologic processes, instead
+it mimics the bahavior of erosion and deposition by rolling a dice
+for most of the factors involved, and if the roll was succesful,
+proceed to the next step.
+
+Material hardness and resistance are taken into account - some
+materials are easier displaced than others. Some materials degrade
+easier than others. Some materials (sand) have a different angle
+of repose.
+
+This plugin isn't meant to enhance game play per se, it will operate
+slowly over time and vegetation will prevent most of it's effects
+from taking a toll on the landscape in most cases, so it will
+take a long time in default settings from actually doing anything
+noticeable. Because dirt naturally gets a grass cover in Minecraft
+it will be unlikely that this plugin does significant damage to your
+world. Of course, planting stuff is still advisable if you want to
+reduce the effects of the plugin further.
+
+~~~~
+
+Commands
+
+  /sed <subcommands> <values>
+
+  /sedimentology stats
+
+Display statistics from the plugin. The plugin keeps internal counters
+for modifications made and attempts, and this command allows you to
+display those statistics.
+
+  /sedimentology blocks <integer>
+
+Modify the number of blocks per cycle that the plugin will
+attempt to consider for modification. Note that due to the various
+factors involved, this number will almost never equal the number of
+modifications made per cycle - but increasing it will accelerate the
+erosion process.
+
+  /sedimentology help
+
+Displays a help message describing the commands available.
+
+The "blocks" subcommand requires the "server" privilege.
+
+~~~~
+
+Bugs / Code For bugs, tips, donations please feel free to contact me:
+
+    Auke Kok - auke@foo-projects.org
+
+The project code is hosted on my github page:
+
+    https://github.com/sofar/sedimentology-mt
+
+The bukkit page for this plugin is here:
+
+    http://dev.bukkit.org/bukkit-plugins/sedimentology/
+
+More information can be found on the bukkit page. There is also a concepts
+discussion article, and screenshots are posted here for viewing as well.
