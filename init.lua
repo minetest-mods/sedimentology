@@ -389,10 +389,20 @@ local function sed()
 		return
 	end
 
-	-- prevent dirt-to-sand outside deserts
-	-- FIXME should account for Biome here too
+	-- prevent sand-to-clay unless under water
+	-- FIXME should account for Biome here too (should be ocean, river, or beach-like)
 	if (underliquid < 1) and (node.name == "default:sand" or node.name == "default:desert_sand") then
 		return
+	end
+
+	-- prevent sand in dirt-dominated areas
+	if node.name == "default:dirt" then
+		-- since we don't have biome information, we'll assume that if there is no sand or
+		-- desert sand anywhere nearby, we shouldn't degrade this block further
+		local fpos = minetest.find_node_near(pos, 2, {"default:sand", "default:desert_sand"})
+		if not fpos then
+			return
+		end
 	end
 
 	if roll(hardness) then
@@ -403,7 +413,12 @@ local function sed()
 	local newmat = "air"
 
 	if node.name == "default:dirt" then
-		newmat = "default:sand"
+		local fpos = minetest.find_node_near(pos, 2, "default:desert_sand")
+		if not fpos then
+			newmat = "default:sand"
+		else
+			newmat = "default:desert_sand"
+		end
 	elseif node.name == "default:dirt_with_grass" or
 	       node.name == "default:dirt_with_grass_footsteps" or
 	       node.name == "default:dirt_with_snow" then
