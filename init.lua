@@ -222,6 +222,11 @@ local function sed()
 		z = math.random(playerpos.z - radius, playerpos.z + radius)
 	}
 
+	-- keep it in a real circle
+	if (pos.x - playerpos.x) * (pos.x - playerpos.x) + (pos.z - playerpos.z) * (pos.z - playerpos.z) > radius * radius then
+		return
+	end
+
 	stat_considered = stat_considered + 1
 
 	-- force load map
