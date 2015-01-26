@@ -23,6 +23,8 @@ License along with this library
 --   github.com/sofar
 --
 
+local mprops = dofile(minetest.get_modpath(minetest.get_current_modname()) .. "/nodes.lua")
+
 local interval = 1.0
 local count = 20
 local radius = 100
@@ -284,46 +286,10 @@ local function sed()
 
 	local node = minetest.get_node(pos)
 
-	-- check if we're material that we can do something with
-	local hardness = 1.0
-	local resistance = 1.0
-
-	if      node.name == "default:dirt" or
-		node.name == "default:dirt_with_grass" or
-		node.name == "default:dirt_with_grass_footsteps" or
-		node.name == "default:dirt_with_snow" then
-		-- default hardness (very soft) here
-	elseif node.name == "default:sand" or node.name == "default:desert_sand" then
-		-- sand is "hard" to break into clay, but moves easily
-		hardness = 0.01
-	elseif node.name == "default:gravel" then
-		hardness = 0.15
-		resistance = 0.70
-	elseif node.name == "default:clay" then
-		resistance = 0.3
-	elseif node.name == "default:sandstone" or
-		node.name == "default:cobble" or
-		node.name == "default:mossycobble" or
-		node.name == "default:desert_cobble" then
-		hardness = 0.05
-		resistance = 0.05
-	elseif node.name == "default:desert_stone" or
-		node.name == "default:stone" then
-		hardness = 0.01
-		resistance = 0.01
-	elseif node.name == "default:stone_with_coal" or
-		node.name == "default:stone_with_iron" or
-		node.name == "default:stone_with_copper" or
-		node.name == "default:stone_with_gold" or
-		node.name == "default:stone_with_mese" or
-		node.name == "default:stone_with_diamond" then
-		hardness = 0.0001
-		resistance = 0.01
-	else
-		-- we don't do anything with this node type
+	-- do we handle this material?
+	if not mprops[node.name] then
 		return
 	end
-
 
 	-- determine nearby water scaling
 	local waterfactor = 0.01
@@ -348,7 +314,6 @@ local function sed()
 	if roll(scan_for_vegetation(pos)) then
 		return
 	end
-
 
 	-- displacement - before we erode this material, we check to see if
 	-- it's not easier to move the material first. If that fails, we'll
@@ -383,7 +348,7 @@ local function sed()
 		if lowest < pos.y then
 			local tpos = {x = pos.x + lowesto.x, y = lowest, z = pos.z + lowesto.z}
 
-			if not roll(resistance) then
+			if not roll(mprops[node.name].r) then
 				local tnode = minetest.get_node(tpos)
 
 				if node_is_valid_target_for_displacement(tpos) then
@@ -430,45 +395,27 @@ local function sed()
 		end
 	end
 
-	if roll(hardness) then
+	if roll(mprops[node.name].h) then
 		return
 	end
 
 	-- finally, determine new material type
 	local newmat = "air"
 
-	if node.name == "default:dirt" then
-		local fpos = minetest.find_node_near(pos, 2, "default:desert_sand")
-		if not fpos then
-			newmat = "default:sand"
-		else
-			newmat = "default:desert_sand"
+	if table.getn(mprops[node.name].t) > 1 then
+		-- multiple possibilities, scan area around for best suitable type
+		for i = table.getn(mprops[node.name].t), 2, -1 do
+			local fpos = minetest.find_node_near(pos, 5, mprops[node.name].t[i])
+			if fpos then
+				newmat = mprops[node.name].t[i]
+				break
+			end
 		end
-	elseif node.name == "default:dirt_with_grass" or
-	       node.name == "default:dirt_with_grass_footsteps" or
-	       node.name == "default:dirt_with_snow" then
-		newmat = "default:dirt"
-	elseif node.name == "default:sand" or node.name == "default:desert_sand" then
-		newmat = "default:clay"
-	elseif node.name == "default:gravel" then
-		newmat = "default:dirt"
-	elseif node.name == "default:clay" then
-		return
-	elseif node.name == "default:sandstone" or
-	       node.name == "default:cobble" or
-	       node.name == "default:mossycobble" or
-	       node.name == "default:desert_cobble" then
-		newmat = "default:gravel"
-	elseif node.name == "default:desert_stone" or
-	       node.name == "default:stone" then
-		newmat = "default:cobble"
-	elseif node.name == "default:stone_with_coal" or
-	       node.name == "default:stone_with_iron" or
-	       node.name == "default:stone_with_copper" or
-	       node.name == "default:stone_with_gold" or
-	       node.name == "default:stone_with_mese" or
-	       node.name == "default:stone_with_diamond" then
-		newmat = "default:stone"
+		if newmat == "air" then
+			newmat = mprops[node.name].t[1]
+		end
+	else
+		newmat = mprops[node.name].t[1]
 	end
 
 	minetest.set_node(pos, {name = newmat})
