@@ -33,7 +33,7 @@ local stat_considered = 0
 local stat_displaced = 0
 local stat_degraded = 0
 
-local function round(f) 
+local function round(f)
 	if f >= 0 then
 		return math.floor(f + 0.5)
 	else

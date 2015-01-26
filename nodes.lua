@@ -84,4 +84,3 @@ return {
 	["technic:mineral_zinc"]
 		= { h = 0.0001, r = 0.01, t = { "default:stone", "default:desert_stone" }},
 }
-
