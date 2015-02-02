@@ -33,6 +33,8 @@ local stat_considered = 0
 local stat_displaced = 0
 local stat_degraded = 0
 
+local sealevel = minetest.get_mapgen_params().water_level
+
 local function round(f)
 	if f >= 0 then
 		return math.floor(f + 0.5)
@@ -112,6 +114,14 @@ local function node_is_plant(node)
 	        (name == "default:jungleleaves") or
 	        (name == "default:pine_needles") or
 	        (name == "default:cactus"))
+end
+
+local function node_is_water_source(node)
+	if not node then
+		return false
+	end
+
+	return (node.name == "default:water_source")
 end
 
 local function node_is_water(node)
@@ -304,7 +314,7 @@ local function sed()
 	end
 
 	-- slow down deeper under sea level (wave action reduced energy)
-	if underliquid and pos.y < 0.0 then
+	if underliquid and pos.y <= sealevel then
 		if roll(2.0 * math.pow(0.5, 0.0 - pos.y)) then
 			return
 		end
@@ -357,11 +367,24 @@ local function sed()
 					minetest.get_meta(tpos):from_table(minetest.get_meta(pos):to_table())
 					minetest.remove_node(pos)
 
-					-- FIXME
-					-- fix water at source location
-					-- fix water at target location
-
 					stat_displaced = stat_displaced + 1
+
+					-- fix water edges at or below sea level.
+					if pos.y > sealevel then
+						return
+					end
+
+					if (node_is_water_source(minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z})) or
+					    node_is_water_source(minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z})) or
+					    node_is_water_source(minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1})) or
+					    node_is_water_source(minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}))) and
+					   (not node_is_air(minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z})) and
+					    not node_is_air(minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z})) and
+					    not node_is_air(minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1})) and
+					    not node_is_air(minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}))) then
+						-- instead of air, leave a water node
+						minetest.set_node(pos, { name = "default:water_source"})
+					end
 
 					-- done - don't degrade this block further
 					return
