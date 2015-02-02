@@ -363,7 +363,8 @@ local function sed()
 
 				if node_is_valid_target_for_displacement(tpos) then
 					-- time to displace the node from pos to tpos
-					minetest.place_node(tpos, node)
+					minetest.set_node(tpos, node)
+					minetest.sound_play({name = "default_place_node"}, { pos = tpos })
 					minetest.get_meta(tpos):from_table(minetest.get_meta(pos):to_table())
 					minetest.remove_node(pos)
 
