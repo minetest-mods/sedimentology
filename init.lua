@@ -412,7 +412,7 @@ local function sed()
 	if node.name == "default:dirt" and underliquid < 1 then
 		-- since we don't have biome information, we'll assume that if there is no sand or
 		-- desert sand anywhere nearby, we shouldn't degrade this block further
-		local fpos = minetest.find_node_near(pos, 2, {"default:sand", "default:desert_sand"})
+		local fpos = minetest.find_node_near({x = pos.x, y = pos.y + 1, z = pos.z}, 1, {"default:sand", "default:desert_sand"})
 		if not fpos then
 			return
 		end
