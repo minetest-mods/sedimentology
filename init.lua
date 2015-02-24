@@ -91,6 +91,10 @@ local function pos_is_node(pos)
 	return minetest.get_node_or_nil(pos)
 end
 
+local function pos_is_ignore(pos)
+	return minetest.get_node(pos).name == "ignore"
+end
+
 local function node_is_air(node)
 	return node.name == "air"
 end
@@ -270,14 +274,12 @@ local function sed()
 		{x = pos.x + 3, y = pos.y + 100, z = pos.z + 3}
 	)
 
-	-- now go find the topmost non-air block
+	-- now go find the topmost world block
 	repeat
 		pos = pos_above(pos)
-		if not minetest.get_node_or_nil(pos) then
-			return
-		end
-	until node_is_air(minetest.get_node(pos))
+	until pos_is_ignore(pos)
 
+	-- then find lowest air block
 	repeat
 		pos = pos_below(pos)
 		if not minetest.get_node_or_nil(pos) then
