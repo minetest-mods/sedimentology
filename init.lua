@@ -296,6 +296,11 @@ local function sed()
 		end
 	end
 
+	-- protected?
+	if minetest.is_protected(pos, "mod:sedimentology") then
+		return
+	end
+
 	local node = minetest.get_node(pos)
 
 	-- do we handle this material?
@@ -359,6 +364,10 @@ local function sed()
 
 		if lowest < pos.y then
 			local tpos = {x = pos.x + lowesto.x, y = lowest, z = pos.z + lowesto.z}
+
+			if minetest.is_protected(tpos, "mod:sedimentology") then
+				return
+			end
 
 			if not roll(mprops[node.name].r) then
 				local tnode = minetest.get_node(tpos)
