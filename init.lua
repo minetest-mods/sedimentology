@@ -103,6 +103,9 @@ local function node_is_plant(node)
 	if not node then
 		return false
 	end
+	if node.name == "ignore" then
+		return false
+	end
 
 	local name = node.name
 	local drawtype = minetest.registered_nodes[name].drawtype
@@ -124,12 +127,18 @@ local function node_is_water_source(node)
 	if not node then
 		return false
 	end
+	if node.name == "ignore" then
+		return false
+	end
 
 	return (node.name == "default:water_source")
 end
 
 local function node_is_water(node)
 	if not node then
+		return false
+	end
+	if node.name == "ignore" then
 		return false
 	end
 
@@ -141,6 +150,9 @@ local function node_is_lava(node)
 	if not node then
 		return false
 	end
+	if node.name == "ignore" then
+		return false
+	end
 
 	return ((node.name == "default:lava_source") or
 	        (node.name == "default:lava_flowing"))
@@ -148,6 +160,9 @@ end
 
 local function node_is_liquid(node)
 	if not node then
+		return false
+	end
+	if node.name == "ignore" then
 		return false
 	end
 
