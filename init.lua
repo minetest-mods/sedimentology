@@ -33,7 +33,10 @@ local stat_considered = 0
 local stat_displaced = 0
 local stat_degraded = 0
 
-local sealevel = minetest.get_mapgen_params().water_level
+local sealevel = 0
+if not minetest.get_mapgen_params == nil then
+	sealevel = minetest.get_mapgen_params().water_level
+end
 
 local function round(f)
 	if f >= 0 then
