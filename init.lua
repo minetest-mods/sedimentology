@@ -114,7 +114,7 @@ local function node_is_plant(node)
 	if not minetest.registered_nodes[name] then
 		return false
 	end
-	local drawtype = get_nodedef_field(name, "drawtype")
+	local drawtype = minetest.registered_nodes[name]["drawtype"]
 	if drawtype == "plantlike" then
 		return true
 	end
@@ -176,7 +176,7 @@ local function node_is_liquid(node)
 	if not minetest.registered_nodes[name] then
 		return false
 	end
-	local drawtype = get_nodedef_field(name, "drawtype")
+	local drawtype = minetest.registered_nodes[name]["drawtype"]
 	if drawtype then
 		if (drawtype == "liquid") or (drawtype == "flowingliquid") then
 			return true
