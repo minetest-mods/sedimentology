@@ -122,6 +122,14 @@ local function node_is_plant(node)
 	if minetest.registered_nodes[node.name].groups.flora == 1 then
 		return true
 	end
+	
+	if minetest.registered_nodes[node.name].groups.leaves == 1 then
+		return true
+	end
+	
+	if minetest.registered_nodes[node.name].groups.tree == 1 then
+		return true
+	end
 
 	return ((name == "default:leaves") or
 	        (name == "default:jungleleaves") or
@@ -140,6 +148,17 @@ local function node_is_water_source(node)
 	return (node.name == "default:water_source")
 end
 
+local function node_is_river_water_source(node)
+	if not node then
+		return false
+	end
+	if node.name == "ignore" then
+		return false
+	end
+
+	return (node.name == "default:river_water_source")
+end
+
 local function node_is_water(node)
 	if not node then
 		return false
@@ -149,7 +168,9 @@ local function node_is_water(node)
 	end
 
 	return ((node.name == "default:water_source") or
-	        (node.name == "default:water_flowing"))
+	        (node.name == "default:water_flowing") or
+	        (node.name == "default:river_water_flowing") or
+	        (node.name == "default:river_water_flowing"))
 end
 
 local function node_is_lava(node)
@@ -194,7 +215,7 @@ local function scan_for_water(pos, waterfactor)
 				local nn = minetest.get_node({xx, yy, zz})
 				if nn.name == "default:water_flowing" then
 					return 0.25
-				elseif nn.name == "default:water_source" then
+				elseif (nn.name == "default:water_source") or (nn.name == "default:river_water_source") then
 					w = 0.125
 					break
 				end
@@ -365,6 +386,7 @@ local function sed()
 
 		if node.name == "default:sand" or
 		   node.name == "default:desert_sand" or
+		   node.name == "default:silver_sand" or
 		   (underliquid > 0) then
 			steps = 24
 		else
@@ -421,6 +443,18 @@ local function sed()
 						-- instead of air, leave a water node
 						minetest.set_node(pos, { name = "default:water_source"})
 					end
+					
+					if (node_is_river_water_source(minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z})) or
+					    node_is_river_water_source(minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z})) or
+					    node_is_river_water_source(minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1})) or
+					    node_is_river_water_source(minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}))) and
+					   (not node_is_air(minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z})) and
+					    not node_is_air(minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z})) and
+					    not node_is_air(minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1})) and
+					    not node_is_air(minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}))) then
+						-- instead of air, leave a water node
+						minetest.set_node(pos, { name = "default:river_water_source"})
+					end
 
 					-- done - don't degrade this block further
 					return
@@ -434,13 +468,13 @@ local function sed()
 	-- compensate speed for grass/dirt cycle
 
 	-- sand only becomes clay under sealevel
-	if ((node.name == "default:sand" or node.name == "default:desert_sand") and (underliquid > 0) and pos.y >= 0.0) then
+	if ((node.name == "default:sand" or node.name == "default:desert_sand" or node.name == "default:silver_sand") and (underliquid > 0) and pos.y >= 0.0) then
 		return
 	end
 
 	-- prevent sand-to-clay unless under water
 	-- FIXME should account for Biome here too (should be ocean, river, or beach-like)
-	if (underliquid < 1) and (node.name == "default:sand" or node.name == "default:desert_sand") then
+	if (underliquid < 1) and (node.name == "default:sand" or node.name == "default:desert_sand" or node.name == "default:silver_sand") then
 		return
 	end
 
@@ -448,7 +482,7 @@ local function sed()
 	if node.name == "default:dirt" and underliquid < 1 then
 		-- since we don't have biome information, we'll assume that if there is no sand or
 		-- desert sand anywhere nearby, we shouldn't degrade this block further
-		local fpos = minetest.find_node_near({x = pos.x, y = pos.y + 1, z = pos.z}, 1, {"default:sand", "default:desert_sand"})
+		local fpos = minetest.find_node_near({x = pos.x, y = pos.y + 1, z = pos.z}, 1, {"default:sand", "default:desert_sand", "default:silver_sand"})
 		if not fpos then
 			return
 		end
