@@ -23,6 +23,11 @@ License along with this library
 --   github.com/sofar
 --
 
+local NODE_RIVER_SRC = "default:river_water_source"
+local NODE_RIVER_FLO = "default:river_water_flowing"
+local NODE_WATER_SRC = "default:water_source"
+local NODE_WATER_FLO = "default:water_flowing"
+
 local mprops = dofile(minetest.get_modpath(minetest.get_current_modname()) .. "/nodes.lua")
 
 local interval = 1.0
@@ -98,9 +103,9 @@ local function scan_for_water(pos, waterfactor)
 		for yy = pos.y - 2,pos.y + 2,1 do
 			for zz = pos.z - 2,pos.z + 2,1 do
 				local nn = minetest.get_node({xx, yy, zz})
-				if (nn.name == "default:water_flowing") or (nn.name == "default:river_water_flowing") then
+				if (nn.name == NODE_WATER_FLO) or (nn.name == NODE_RIVER_FLO) then
 					return 0.25
-				elseif (nn.name == "default:water_source") or (nn.name == "default:river_water_source") then
+				elseif (nn.name == NODE_WATER_SRC) or (nn.name == NODE_RIVER_SRC) then
 					w = 0.125
 					break
 				end
@@ -314,28 +319,28 @@ local function sed()
 						return
 					end
 
-					if (minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name == "default:water_source" or
-					   minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name == "default:water_source" or
-					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name == "default:water_source" or
-					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name == "default:water_source") and
+					if (minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name == NODE_WATER_SRC or
+					   minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name == NODE_WATER_SRC or
+					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name == NODE_WATER_SRC or
+					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name == NODE_WATER_SRC) and
 					   (not minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name == "air" and
 					    not minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name == "air" and
 					    not minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name == "air" and
 					    not minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name == "air") then
 						-- instead of air, leave a water node
-						minetest.set_node(pos, { name = "default:water_source"})
+						minetest.set_node(pos, { name = NODE_WATER_SRC})
 					end
 					
-					if (minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name == "default:river_water_source" or
-					   minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name == "default:river_water_source" or
-					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name == "default:river_water_source" or
-					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name == "default:river_water_source") and
+					if (minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name == NODE_RIVER_SRC or
+					   minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name == NODE_RIVER_SRC or
+					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name == NODE_RIVER_SRC or
+					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name == NODE_RIVER_SRC) and
 					   (not minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name == "air" and
 					    not minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name == "air" and
 					    not minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name == "air" and
 					    not minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name == "air") then
 						-- instead of air, leave a water node
-						minetest.set_node(pos, { name = "default:river_water_source"})
+						minetest.set_node(pos, { name = NODE_RIVER_SRC})
 					end
 
 					-- done - don't degrade this block further
@@ -361,7 +366,7 @@ local function sed()
 	end
 
 	-- prevent sand in dirt-dominated areas above water
-	if node.name == "default:dirt" and underliquid < 1 then
+	if (minetest.registered_nodes[node.name].groups.soil == 1) and underliquid < 1 then
 		-- since we don't have biome information, we'll assume that if there is no sand or
 		-- desert sand anywhere nearby, we shouldn't degrade this block further
 		local fpos = minetest.find_node_near({x = pos.x, y = pos.y + 1, z = pos.z}, 1, {"group:sand"})
