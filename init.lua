@@ -93,8 +93,10 @@ local function node_is_plant(node)
 	if not minetest.registered_nodes[name] then
 		return false
 	end
+	
+	local groups = minetest.registered_nodes[name].groups
 
-	return ((minetest.registered_nodes[name].groups.flora == 1) or (minetest.registered_nodes[name].groups.leaves == 1) or (minetest.registered_nodes[name].groups.tree == 1) or (name == "default:cactus"))
+	return ((groups.flora == 1) or (groups.leaves == 1) or (groups.tree == 1) or (name == "default:cactus"))
 end
 
 local function scan_for_water(pos, waterfactor)
@@ -139,9 +141,9 @@ end
 
 local function node_is_valid_target_for_displacement(pos)
 	local node = minetest.get_node(pos)
-	
-	if minetest.registered_nodes[node.name].groups.liquid ~= nil then
-		if minetest.registered_nodes[node.name].groups.liquid >= 1 or node.name == "air" or node_is_plant(node) then
+	local groups = minetest.registered_nodes[node.name].groups
+	if groups.liquid ~= nil then
+		if groups.liquid >= 1 or node.name == "air" or node_is_plant(node) then
 			return true
 		end
 	end
@@ -273,8 +275,10 @@ local function sed()
 
 	if not node_is_locked_in(pos) then
 		local steps = 8
-
-		if minetest.registered_nodes[node.name].groups.sand == 1 or (underliquid > 0) then
+		
+		local groups = minetest.registered_nodes[node.name].groups
+		
+		if groups.sand == 1 or (underliquid > 0) then
 			steps = 24
 		else
 			steps = 8
@@ -355,18 +359,19 @@ local function sed()
 	-- compensate speed for grass/dirt cycle
 
 	-- sand only becomes clay under sealevel
-	if ((minetest.registered_nodes[node.name].groups.sand == 1) and (underliquid > 0) and pos.y >= 0.0) then
+	local groups = minetest.registered_nodes[node.name].groups
+	if ((groups.sand == 1) and (underliquid > 0) and pos.y >= 0.0) then
 		return
 	end
 
 	-- prevent sand-to-clay unless under water
 	-- FIXME should account for Biome here too (should be ocean, river, or beach-like)
-	if (underliquid < 1) and (minetest.registered_nodes[node.name].groups.sand == 1) then
+	if (underliquid < 1) and (groups.sand == 1) then
 		return
 	end
 
 	-- prevent sand in dirt-dominated areas above water
-	if (minetest.registered_nodes[node.name].groups.soil == 1) and underliquid < 1 then
+	if (groups.soil == 1) and underliquid < 1 then
 		-- since we don't have biome information, we'll assume that if there is no sand or
 		-- desert sand anywhere nearby, we shouldn't degrade this block further
 		local fpos = minetest.find_node_near({x = pos.x, y = pos.y + 1, z = pos.z}, 1, {"group:sand"})
