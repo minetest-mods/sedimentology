@@ -134,9 +134,11 @@ end
 
 local function node_is_valid_target_for_displacement(pos)
 	local node = minetest.get_node(pos)
-
-	if minetest.registered_nodes[node.name].groups.liquid >= 1 or node.name == "air" or node_is_plant(node) then
-		return true
+	
+	if minetest.registered_nodes[node.name].groups.liquid ~= nil then
+		if minetest.registered_nodes[node.name].groups.liquid >= 1 or node.name == "air" or node_is_plant(node) then
+			return true
+		end
 	end
 	return false
 end
@@ -214,11 +216,13 @@ local function sed()
 	until not (minetest.get_node(pos).name == "air")
 
 	-- then search under water/lava and any see-through plant stuff
-	while (minetest.registered_nodes[minetest.get_node(pos).name].groups.liquid >= 1) do
-		underliquid = underliquid + 1
-		pos = {x=pos.x, y=pos.y-1, z=pos.z}
-		if not minetest.get_node_or_nil(pos) then
-			return
+	if minetest.registered_nodes[minetest.get_node(pos).name].groups.liquid ~= nil then
+		while (minetest.registered_nodes[minetest.get_node(pos).name].groups.liquid >= 1) do
+			underliquid = underliquid + 1
+			pos = {x=pos.x, y=pos.y-1, z=pos.z}
+			if not minetest.get_node_or_nil(pos) or minetest.registered_nodes[minetest.get_node(pos).name].groups.liquid == nil then
+				return
+			end
 		end
 	end
 
