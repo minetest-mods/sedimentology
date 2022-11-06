@@ -96,7 +96,10 @@ local function node_is_plant(node)
 	
 	local groups = minetest.registered_nodes[name].groups
 
-	return ((groups.flora == 1) or (groups.leaves == 1) or (groups.tree == 1) or (name == "default:cactus"))
+	return groups.flora == 1 or
+			groups.leaves == 1 or
+			groups.tree == 1 or
+			name == "default:cactus"
 end
 
 local function scan_for_water(pos, waterfactor)
@@ -142,12 +145,10 @@ end
 local function node_is_valid_target_for_displacement(pos)
 	local node = minetest.get_node(pos)
 	local groups = minetest.registered_nodes[node.name].groups
-	if groups.liquid ~= nil then
-		if groups.liquid >= 1 or node.name == "air" or node_is_plant(node) then
-			return true
-		end
-	end
-	return false
+	
+	return (groups.liquid or 0) >= 1 or
+			node.name == "air" or
+			node_is_plant(node)
 end
 
 local function node_is_locked_in(pos)
@@ -218,18 +219,21 @@ local function sed()
 	repeat
 		pos = {x=pos.x, y=pos.y-1, z=pos.z}
 		if not minetest.get_node_or_nil(pos) then
-			return
+			return -- not loaded: abort
 		end
 	until not (minetest.get_node(pos).name == "air")
 
+	local function node_is_liquid(pos)
+		local ndef = minetest.registered_nodes[minetest.get_node(pos).name]
+		return ndef and (ndef.groups.liquid or 0) >= 1
+	end
+
 	-- then search under water/lava and any see-through plant stuff
-	if minetest.registered_nodes[minetest.get_node(pos).name].groups.liquid ~= nil then
-		while (minetest.registered_nodes[minetest.get_node(pos).name].groups.liquid >= 1) do
-			underliquid = underliquid + 1
-			pos = {x=pos.x, y=pos.y-1, z=pos.z}
-			if not minetest.get_node_or_nil(pos) or minetest.registered_nodes[minetest.get_node(pos).name].groups.liquid == nil then
-				return
-			end
+	while node_is_liquid(pos) do
+		underliquid = underliquid + 1
+		pos = {x=pos.x, y=pos.y-1, z=pos.z}
+		if not minetest.get_node_or_nil(pos) then
+			return
 		end
 	end
 
@@ -323,26 +327,29 @@ local function sed()
 						return
 					end
 
-					if (minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name == NODE_WATER_SRC or
-					   minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name == NODE_WATER_SRC or
-					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name == NODE_WATER_SRC or
-					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name == NODE_WATER_SRC) and
-					   (not minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name == "air" and
-					    not minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name == "air" and
-					    not minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name == "air" and
-					    not minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name == "air") then
+					-- check 4 surrounding nodes
+					local node_1 = minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name
+					local node_2 = minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name
+					local node_3 = minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name
+					local node_4 = minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name
+					local have_no_air = (
+						node_1 ~= "air" and
+					    node_2 ~= "air" and
+					    node_3 ~= "air" and
+					    node_4 ~= "air")
+					
+					if have_no_air and (node_1 == NODE_WATER_SRC or
+							node_2 == NODE_WATER_SRC or
+							node_3 == NODE_WATER_SRC or
+							node_4 == NODE_WATER_SRC) then
 						-- instead of air, leave a water node
 						minetest.set_node(pos, { name = NODE_WATER_SRC})
 					end
 					
-					if (minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name == NODE_RIVER_SRC or
-					   minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name == NODE_RIVER_SRC or
-					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name == NODE_RIVER_SRC or
-					   minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name == NODE_RIVER_SRC) and
-					   (not minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name == "air" and
-					    not minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name == "air" and
-					    not minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name == "air" and
-					    not minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name == "air") then
+					if have_no_air and (node_1 == NODE_RIVER_SRC or
+							node_2 == NODE_RIVER_SRC or
+							node_3 == NODE_RIVER_SRC or
+							node_4 == NODE_RIVER_SRC) then
 						-- instead of air, leave a water node
 						minetest.set_node(pos, { name = NODE_RIVER_SRC})
 					end
@@ -366,7 +373,7 @@ local function sed()
 
 	-- prevent sand-to-clay unless under water
 	-- FIXME should account for Biome here too (should be ocean, river, or beach-like)
-	if (underliquid < 1) and (groups.sand == 1) then
+	if (groups.sand == 1) and (underliquid < 1) then
 		return
 	end
 
