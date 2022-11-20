@@ -23,6 +23,11 @@ License along with this library
 --   github.com/sofar
 --
 
+local NODE_RIVER_SRC = "default:river_water_source"
+local NODE_RIVER_FLO = "default:river_water_flowing"
+local NODE_WATER_SRC = "default:water_source"
+local NODE_WATER_FLO = "default:water_flowing"
+
 local mprops = dofile(minetest.get_modpath(minetest.get_current_modname()) .. "/nodes.lua")
 
 local interval = 1.0
@@ -82,108 +87,19 @@ local function roll(chance)
 	return (math.random() >= chance)
 end
 
-local function pos_above(pos)
-	return {x = pos.x, y = pos.y + 1, z = pos.z}
-end
-
-local function pos_below(pos)
-	return {x = pos.x, y = pos.y - 1, z = pos.z}
-end
-
-local function pos_is_node(pos)
-	return minetest.get_node_or_nil(pos)
-end
-
-local function pos_is_ignore(pos)
-	return minetest.get_node(pos).name == "ignore"
-end
-
-local function node_is_air(node)
-	return node.name == "air"
-end
-
 local function node_is_plant(node)
-	if not node then
-		return false
-	end
-	if node.name == "ignore" then
-		return false
-	end
 
 	local name = node.name
 	if not minetest.registered_nodes[name] then
 		return false
 	end
-	local drawtype = minetest.registered_nodes[name]["drawtype"]
-	if drawtype == "plantlike" then
-		return true
-	end
+	
+	local groups = minetest.registered_nodes[name].groups
 
-	if minetest.registered_nodes[node.name].groups.flora == 1 then
-		return true
-	end
-
-	return ((name == "default:leaves") or
-	        (name == "default:jungleleaves") or
-	        (name == "default:pine_needles") or
-	        (name == "default:cactus"))
-end
-
-local function node_is_water_source(node)
-	if not node then
-		return false
-	end
-	if node.name == "ignore" then
-		return false
-	end
-
-	return (node.name == "default:water_source")
-end
-
-local function node_is_water(node)
-	if not node then
-		return false
-	end
-	if node.name == "ignore" then
-		return false
-	end
-
-	return ((node.name == "default:water_source") or
-	        (node.name == "default:water_flowing"))
-end
-
-local function node_is_lava(node)
-	if not node then
-		return false
-	end
-	if node.name == "ignore" then
-		return false
-	end
-
-	return ((node.name == "default:lava_source") or
-	        (node.name == "default:lava_flowing"))
-end
-
-local function node_is_liquid(node)
-	if not node then
-		return false
-	end
-	if node.name == "ignore" then
-		return false
-	end
-
-	local name = node.name
-	if not minetest.registered_nodes[name] then
-		return false
-	end
-	local drawtype = minetest.registered_nodes[name]["drawtype"]
-	if drawtype then
-		if (drawtype == "liquid") or (drawtype == "flowingliquid") then
-			return true
-		end
-	end
-
-	return false
+	return groups.flora == 1 or
+			groups.leaves == 1 or
+			groups.tree == 1 or
+			name == "default:cactus"
 end
 
 local function scan_for_water(pos, waterfactor)
@@ -192,9 +108,9 @@ local function scan_for_water(pos, waterfactor)
 		for yy = pos.y - 2,pos.y + 2,1 do
 			for zz = pos.z - 2,pos.z + 2,1 do
 				local nn = minetest.get_node({xx, yy, zz})
-				if nn.name == "default:water_flowing" then
+				if (nn.name == NODE_WATER_FLO) or (nn.name == NODE_RIVER_FLO) then
 					return 0.25
-				elseif nn.name == "default:water_source" then
+				elseif (nn.name == NODE_WATER_SRC) or (nn.name == NODE_RIVER_SRC) then
 					w = 0.125
 					break
 				end
@@ -228,15 +144,11 @@ end
 
 local function node_is_valid_target_for_displacement(pos)
 	local node = minetest.get_node(pos)
-
-	if node_is_liquid(node) then
-		return true
-	elseif node_is_air(node) then
-		return true
-	elseif node_is_plant(node) then
-		return true
-	end
-	return false
+	local groups = minetest.registered_nodes[node.name].groups
+	
+	return (groups.liquid or 0) >= 1 or
+			node.name == "air" or
+			node_is_plant(node)
 end
 
 local function node_is_locked_in(pos)
@@ -300,21 +212,26 @@ local function sed()
 
 	-- now go find the topmost world block
 	repeat
-		pos = pos_above(pos)
-	until pos_is_ignore(pos)
+		pos = {x=pos.x, y=pos.y+1, z=pos.z}
+	until (minetest.get_node(pos).name == "ignore")
 
 	-- then find lowest air block
 	repeat
-		pos = pos_below(pos)
+		pos = {x=pos.x, y=pos.y-1, z=pos.z}
 		if not minetest.get_node_or_nil(pos) then
-			return
+			return -- not loaded: abort
 		end
-	until not node_is_air(minetest.get_node(pos))
+	until not (minetest.get_node(pos).name == "air")
+
+	local function node_is_liquid(pos)
+		local ndef = minetest.registered_nodes[minetest.get_node(pos).name]
+		return ndef and (ndef.groups.liquid or 0) >= 1
+	end
 
 	-- then search under water/lava and any see-through plant stuff
-	while (node_is_liquid(minetest.get_node(pos))) do
+	while node_is_liquid(pos) do
 		underliquid = underliquid + 1
-		pos = pos_below(pos)
+		pos = {x=pos.x, y=pos.y-1, z=pos.z}
 		if not minetest.get_node_or_nil(pos) then
 			return
 		end
@@ -362,10 +279,10 @@ local function sed()
 
 	if not node_is_locked_in(pos) then
 		local steps = 8
-
-		if node.name == "default:sand" or
-		   node.name == "default:desert_sand" or
-		   (underliquid > 0) then
+		
+		local groups = minetest.registered_nodes[node.name].groups
+		
+		if groups.sand == 1 or (underliquid > 0) then
 			steps = 24
 		else
 			steps = 8
@@ -410,16 +327,31 @@ local function sed()
 						return
 					end
 
-					if (node_is_water_source(minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z})) or
-					    node_is_water_source(minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z})) or
-					    node_is_water_source(minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1})) or
-					    node_is_water_source(minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}))) and
-					   (not node_is_air(minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z})) and
-					    not node_is_air(minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z})) and
-					    not node_is_air(minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1})) and
-					    not node_is_air(minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}))) then
+					-- check 4 surrounding nodes
+					local node_1 = minetest.get_node({x = pos.x - 1, y = pos.y, z = pos.z}).name
+					local node_2 = minetest.get_node({x = pos.x + 1, y = pos.y, z = pos.z}).name
+					local node_3 = minetest.get_node({x = pos.x, y = pos.y, z = pos.z - 1}).name
+					local node_4 = minetest.get_node({x = pos.x, y = pos.y, z = pos.z + 1}).name
+					local have_no_air = (
+						node_1 ~= "air" and
+					    node_2 ~= "air" and
+					    node_3 ~= "air" and
+					    node_4 ~= "air")
+					
+					if have_no_air and (node_1 == NODE_WATER_SRC or
+							node_2 == NODE_WATER_SRC or
+							node_3 == NODE_WATER_SRC or
+							node_4 == NODE_WATER_SRC) then
 						-- instead of air, leave a water node
-						minetest.set_node(pos, { name = "default:water_source"})
+						minetest.set_node(pos, { name = NODE_WATER_SRC})
+					end
+					
+					if have_no_air and (node_1 == NODE_RIVER_SRC or
+							node_2 == NODE_RIVER_SRC or
+							node_3 == NODE_RIVER_SRC or
+							node_4 == NODE_RIVER_SRC) then
+						-- instead of air, leave a water node
+						minetest.set_node(pos, { name = NODE_RIVER_SRC})
 					end
 
 					-- done - don't degrade this block further
@@ -434,21 +366,22 @@ local function sed()
 	-- compensate speed for grass/dirt cycle
 
 	-- sand only becomes clay under sealevel
-	if ((node.name == "default:sand" or node.name == "default:desert_sand") and (underliquid > 0) and pos.y >= 0.0) then
+	local groups = minetest.registered_nodes[node.name].groups
+	if ((groups.sand == 1) and (underliquid > 0) and pos.y >= 0.0) then
 		return
 	end
 
 	-- prevent sand-to-clay unless under water
 	-- FIXME should account for Biome here too (should be ocean, river, or beach-like)
-	if (underliquid < 1) and (node.name == "default:sand" or node.name == "default:desert_sand") then
+	if (groups.sand == 1) and (underliquid < 1) then
 		return
 	end
 
 	-- prevent sand in dirt-dominated areas above water
-	if node.name == "default:dirt" and underliquid < 1 then
+	if (groups.soil == 1) and underliquid < 1 then
 		-- since we don't have biome information, we'll assume that if there is no sand or
 		-- desert sand anywhere nearby, we shouldn't degrade this block further
-		local fpos = minetest.find_node_near({x = pos.x, y = pos.y + 1, z = pos.z}, 1, {"default:sand", "default:desert_sand"})
+		local fpos = minetest.find_node_near({x = pos.x, y = pos.y + 1, z = pos.z}, 1, {"group:sand"})
 		if not fpos then
 			return
 		end
