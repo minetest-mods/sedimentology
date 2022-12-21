@@ -458,4 +458,6 @@ minetest.register_chatcommand("sed", {
 })
 
 minetest.after(interval, sedimentology)
-print("Initialized Sedimentology")
+
+-- print to log after mod was loaded successfully
+print ("[MOD] Sedimentology loaded")
